@@ -1,0 +1,19 @@
+{
+  "name": "discord-amoled-installer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "run": "node .",
+    "build": "pkg"
+  },
+  "bin": "index.js",
+  "pkg": {
+    "outputPath": "dist"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@electron/asar": "^3.2.2"
+  }
+}
