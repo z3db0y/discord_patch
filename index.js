@@ -6,8 +6,8 @@ const { exec } = require('child_process');
 function findDiscordCore(discordInstall) {
     let dir = fs.readdirSync(discordInstall.path);
     let appDirname = dir.find(d => d.startsWith("app-"));
-    if(!appDirname) return null;
-    let app = path.join(discordInstall.path, appDirname);
+    if(!appDirname && process.platform == 'win32') return null;
+    let app = path.join(discordInstall.path, appDirname || '.');
     let modules = path.join(app, "modules");
     let modulesDir = fs.readdirSync(modules);
     let coreDirname = modulesDir.find(d => d.startsWith("discord_desktop_core-"));
@@ -18,7 +18,7 @@ function findDiscordCore(discordInstall) {
 }
 
 function findDiscordInstall() {
-    const STABLE = process.env.LOCALAPPDATA + "\\Discord";
+    const STABLE = (process.env.LOCALAPPDATA || '/usr/bin') + '\\Discord';
     const PTB = process.env.LOCALAPPDATA + "\\DiscordPTB";
     const CANARY = process.env.LOCALAPPDATA + "\\discordcanary";
     let found = [];
