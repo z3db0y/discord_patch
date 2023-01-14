@@ -29,7 +29,7 @@ function findDiscordInstall() {
     return found;
 }
 
-async function inject() {
+async function inject(backup = true) {
     console.log('🔎 Searching for Discord...');
     let discordInstall = findDiscordInstall();
     if(!discordInstall.length) return console.log('❌ Discord not found.');
@@ -62,20 +62,28 @@ async function inject() {
     if(!core) return console.log('❌ Discord core not found.');
     console.log('✅ Discord core found! Path: ' + core);
 
-    if(fs.existsSync(core + '.bak')) return console.log('❌ Discord is already patched. You can restore it by choosing the restore option.');
+    if(fs.existsSync(core + '.bak') && backup) return console.log('❌ Discord is already patched. You can restore it by choosing the restore option.');
+    else if(!fs.existsSync(core + '.bak') && !backup) return console.log('❌ Discord is not patched. You can patch it by choosing the patch option.');
 
-    console.log('📦 Backing up Discord core...');
-    fs.copyFileSync(core, core + '.bak');
-    console.log('✅ Discord core backed up! Path: ' + core + '.bak');
+    if(backup) {
+        console.log('📦 Backing up Discord core...');
+        fs.copyFileSync(core, core + '.bak');
+        console.log('✅ Discord core backed up! Path: ' + core + '.bak');
+    }
 
     console.log('📦 Injecting Discord core...');
-    asar.extractAll(core, core.replace('core.asar', 'core_unpack'));
-    let preload = fs.readFileSync(path.join(core.replace('core.asar', 'core_unpack'), 'app', 'mainScreenPreload.js'), 'utf8');
-    let injectCode = fs.readFileSync(path.join(__dirname, 'script.js'), 'utf8');
-    preload += '\n\n' + injectCode;
-    fs.writeFileSync(path.join(core.replace('core.asar', 'core_unpack'), 'app', 'mainScreenPreload.js'), preload);
-    await asar.createPackage(core.replace('core.asar', 'core_unpack'), core);
-    fs.rmSync(core.replace('core.asar', 'core_unpack'), { recursive: true });
+    let unpackDir = core.replace(/core\.asar(\.bak)?/, 'core_unpacked');
+    asar.extractAll(core + (backup ? '' : '.bak'), unpackDir);
+    let preload = fs.readFileSync(path.join(unpackDir, 'app', 'mainScreenPreload.js'), 'utf8');
+    let injectCode_renderer = fs.readFileSync(path.join(__dirname, 'script_renderer.js'), 'utf8');
+    preload += '\n\n' + injectCode_renderer;
+    let main = fs.readFileSync(path.join(unpackDir, 'app', 'mainScreen.js'), 'utf8');
+    let injectCode_main = fs.readFileSync(path.join(__dirname, 'script_main.js'), 'utf8');
+    main += '\n\n' + injectCode_main;
+    fs.writeFileSync(path.join(unpackDir, 'app', 'mainScreenPreload.js'), preload);
+    fs.writeFileSync(path.join(unpackDir, 'app', 'mainScreen.js'), main);
+    await asar.createPackage(unpackDir, core);
+    fs.rmSync(unpackDir, { recursive: true });
     console.log('✅ Discord core injected!');
 
     process.stdout.write('🔁 Restart Discord? (y/n) ');
@@ -178,10 +186,11 @@ process.stdin.on('data', async function (text) {
         process.exit();
     } else if(popup) {
         if(text.toLowerCase() == 'i') (console.log(text), popup = false, await inject(), process.stdout.write('[Process completed. Press [ENTER] to exit]'), donePopup = true);
+        else if(text.toLowerCase() == 'u') (console.log(text), popup = false, await inject(false), process.stdout.write('[Process completed. Press [ENTER] to exit]'), donePopup = true);
         else if(text.toLowerCase() == 'r') (console.log(text), popup = false, await restore(), process.stdout.write('[Process completed. Press [ENTER] to exit]'), donePopup = true);
     } else if(donePopup && text == '\r') process.exit();
 });
 
 process.title = "Discord Patch (by ZEDBOY#0474)";
 console.log('Discord Quality of Life Patch (by ZEDBOY#0474)');
-process.stdout.write('(Select action: [i]nject / [r]estore): ');
+process.stdout.write('(Select action: [i]nject / [u]pdate patch / [r]estore): ');
