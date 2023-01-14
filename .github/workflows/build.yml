@@ -20,5 +20,4 @@ jobs:
           draft: false
           prerelease: true
           tag_name: ${{ github.ref }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
